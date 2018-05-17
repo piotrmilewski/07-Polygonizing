@@ -67,6 +67,7 @@
 void parse_file ( char * filename, 
                   struct matrix * transform, 
                   struct matrix * edges,
+		  struct matrix * polygons,
                   screen s) {
 
   FILE *f;
@@ -96,7 +97,7 @@ void parse_file ( char * filename,
     char axis;
     int type;
     int step = 100;
-    int step_3d = 50;
+    int step_3d = 10;
 
     if ( strncmp(line, "box", strlen(line)) == 0 ) {
       fgets(line, sizeof(line), f);
@@ -105,7 +106,7 @@ void parse_file ( char * filename,
       sscanf(line, "%lf %lf %lf %lf %lf %lf",
              xvals, yvals, zvals,
              xvals+1, yvals+1, zvals+1);
-      add_box(edges, xvals[0], yvals[0], zvals[0],
+      add_box(polygons, xvals[0], yvals[0], zvals[0],
               xvals[1], yvals[1], zvals[1]);
     }//end of box
 
@@ -115,7 +116,7 @@ void parse_file ( char * filename,
 
       sscanf(line, "%lf %lf %lf %lf",
              xvals, yvals, zvals, &r);
-      add_sphere( edges, xvals[0], yvals[0], zvals[0], r, step_3d);
+      add_sphere( polygons, xvals[0], yvals[0], zvals[0], r, step_3d);
     }//end of sphere
 
     else if ( strncmp(line, "torus", strlen(line)) == 0 ) {
@@ -124,7 +125,7 @@ void parse_file ( char * filename,
 
       sscanf(line, "%lf %lf %lf %lf %lf",
              xvals, yvals, zvals, &r, &r1);
-      add_torus( edges, xvals[0], yvals[0], zvals[0], r, r1, step_3d);
+      add_torus( polygons, xvals[0], yvals[0], zvals[0], r, r1, step_3d);
     }//end of torus
 
     else if ( strncmp(line, "circle", strlen(line)) == 0 ) {
@@ -227,12 +228,16 @@ void parse_file ( char * filename,
     else if ( strncmp(line, "apply", strlen(line)) == 0 ) {
       //printf("APPLY\t%s", line);
       matrix_mult(transform, edges);
+      matrix_mult(transform, polygons);
     }//end apply
     
     else if ( strncmp(line, "display", strlen(line)) == 0 ) {
       //printf("DISPLAY\t%s", line);
       clear_screen(s);
-      draw_lines(edges, s, c);
+      if (edges->lastcol > 1)
+	draw_lines(edges, s, c);
+      if (polygons->lastcol > 2)
+	draw_polygons(polygons, s, c);
       display( s );
     }//end display
 
@@ -241,7 +246,10 @@ void parse_file ( char * filename,
       *strchr(line, '\n') = 0;
       //printf("SAVE\t%s\n", line);
       clear_screen(s);
-      draw_lines(edges, s, c);
+      if (edges->lastcol > 1)
+	draw_lines(edges, s, c);
+      if (polygons->lastcol > 2)
+	draw_polygons(polygons, s, c);
       save_extension(s, line);
     }//end save
     

@@ -27,6 +27,31 @@ void add_polygon( struct matrix *polygons,
                   double x0, double y0, double z0, 
                   double x1, double y1, double z1, 
                   double x2, double y2, double z2 ) {
+  add_point(polygons, x0, y0, z0);
+  add_point(polygons, x1, y1, z1);
+  add_point(polygons, x2, y2, z2);
+}
+
+//iz helper fxn for draw_polygons
+double *calc_normal(struct matrix *polygons, int i) {
+
+  double A[3];
+  double B[3];
+  double *N = (double *)malloc(3 * sizeof(double));
+
+  A[0] = polygons->m[0][i+1] - polygons->m[0][i];
+  A[1] = polygons->m[1][i+1] - polygons->m[1][i];
+  A[2] = polygons->m[2][i+1] - polygons->m[2][i];
+
+  B[0] = polygons->m[0][i+2] - polygons->m[0][i];
+  B[1] = polygons->m[1][i+2] - polygons->m[1][i];
+  B[2] = polygons->m[2][i+2] - polygons->m[2][i];
+
+  N[0] = A[1] * B[2] - A[2] * B[1];
+  N[1] = A[2] * B[0] - A[0] * B[2];
+  N[2] = A[0] * B[1] - A[1] * B[0];
+
+  return N;
 }
 
 /*======== void draw_polygons() ==========
@@ -39,6 +64,48 @@ void add_polygon( struct matrix *polygons,
   triangles
   ====================*/
 void draw_polygons( struct matrix *polygons, screen s, color c ) {
+  if ( polygons->lastcol < 3 ) {
+    printf("Oi! Necesitas 3 points para draw a PoLyGoN\n");
+    return;
+  }
+ 
+  int point;
+  double A[3];
+  double B[3];
+  double N[3];
+
+  for (point = 0; point < polygons->lastcol-2; point += 3) {
+    //normal calculations
+    A[0] = polygons->m[0][point+1] - polygons->m[0][point];
+    A[1] = polygons->m[1][point+1] - polygons->m[1][point];
+    A[2] = polygons->m[2][point+1] - polygons->m[2][point];
+
+    B[0] = polygons->m[0][point+2] - polygons->m[0][point];
+    B[1] = polygons->m[1][point+2] - polygons->m[1][point];
+    B[2] = polygons->m[2][point+2] - polygons->m[2][point];
+
+    N[0] = A[1] * B[2] - A[2] * B[1];
+    N[1] = A[2] * B[0] - A[0] * B[2];
+    N[2] = A[0] * B[1] - A[1] * B[0];
+
+    if ( N[2] > 0 ) {
+      draw_line( polygons->m[0][point],
+		 polygons->m[1][point],
+		 polygons->m[0][point+1],
+		 polygons->m[1][point+1],
+		 s, c);
+      draw_line( polygons->m[0][point+2],
+		 polygons->m[1][point+2],
+		 polygons->m[0][point+1],
+		 polygons->m[1][point+1],
+		 s, c);
+      draw_line( polygons->m[0][point],
+		 polygons->m[1][point],
+		 polygons->m[0][point+2],
+		 polygons->m[1][point+2],
+		 s, c);
+    }
+  }
 }
 
 
@@ -56,36 +123,36 @@ void draw_polygons( struct matrix *polygons, screen s, color c ) {
   upper-left corner is (x, y, z) with width, 
   height and depth dimensions.
   ====================*/
-void add_box( struct matrix * edges,
+void add_box( struct matrix * polygons,
               double x, double y, double z,
               double width, double height, double depth ) {
 
-  double x0, y0, z0, x1, y1, z1;
-  x0 = x;
+  double x1, y1, z1;
   x1 = x+width;
-  y0 = y;
   y1 = y-height;
-  z0 = z;
   z1 = z-depth;
 
-  
   //front
-  add_edge(edges, x0, y0, z0, x1, y0, z0);
-  add_edge(edges, x1, y0, z0, x1, y1, z0);
-  add_edge(edges, x1, y1, z0, x0, y1, z0);
-  add_edge(edges, x0, y1, z0, x0, y0, z0);
-
+  add_polygon(polygons, x, y, z, x1, y1, z, x1, y, z);
+  add_polygon(polygons, x, y, z, x, y1, z, x1, y1, z);
+  
   //back
-  add_edge(edges, x0, y0, z1, x1, y0, z1);
-  add_edge(edges, x1, y0, z1, x1, y1, z1);
-  add_edge(edges, x1, y1, z1, x0, y1, z1);
-  add_edge(edges, x0, y1, z1, x0, y0, z1);
-
-  //sides
-  add_edge(edges, x0, y0, z0, x0, y0, z1);
-  add_edge(edges, x1, y0, z0, x1, y0, z1);
-  add_edge(edges, x1, y1, z0, x1, y1, z1);
-  add_edge(edges, x0, y1, z0, x0, y1, z1);
+  add_polygon(polygons, x1, y, z1, x, y1, z1, x, y, z1);
+  add_polygon(polygons, x1, y, z1, x1, y1, z1, x, y1, z1);
+  
+  //right side
+  add_polygon(polygons, x1, y, z, x1, y1, z1, x1, y, z1);
+  add_polygon(polygons, x1, y, z, x1, y1, z, x1, y1, z1);
+  //left side
+  add_polygon(polygons, x, y, z1, x, y1, z, x, y, z);
+  add_polygon(polygons, x, y, z1, x, y1, z1, x, y1, z);
+  
+  //top
+  add_polygon(polygons, x, y, z1, x1, y, z, x1, y, z1);
+  add_polygon(polygons, x, y, z1, x, y, z, x1, y, z);
+  //bottom
+  add_polygon(polygons, x, y1, z, x1, y1, z1, x1, y1, z);
+  add_polygon(polygons, x, y1, z, x, y1, z1, x1, y1, z1);
 }
 
 
@@ -109,7 +176,7 @@ void add_sphere( struct matrix * edges,
                  double r, int step ) {
 
   struct matrix *points = generate_sphere(cx, cy, cz, r, step);
-  int index, lat, longt;
+  int p0, p1, p2, p3, lat, longt;
   int latStop, longStop, latStart, longStart;
   latStart = 0;
   latStop = step;
@@ -120,13 +187,31 @@ void add_sphere( struct matrix * edges,
   for ( lat = latStart; lat < latStop; lat++ ) {
     for ( longt = longStart; longt <= longStop; longt++ ) {
 
-      index = lat * (step) + longt;
-      add_edge( edges, points->m[0][index],
-                points->m[1][index],
-                points->m[2][index],
-                points->m[0][index] + 1,
-                points->m[1][index] + 1,
-                points->m[2][index] + 1);
+      p0 = lat * (step) + longt;
+      p1 = p0+1;
+      p2 = (p1+step) % (step * (step-1));
+      p3 = (p0+step) % (step * (step-1));
+      
+      if (longt <= step - 2)
+        add_polygon( edges, points->m[0][p0],
+		     points->m[1][p0],
+		     points->m[2][p0],
+		     points->m[0][p1],
+		     points->m[1][p1],
+		     points->m[2][p1],
+		     points->m[0][p2],
+		     points->m[1][p2],
+		     points->m[2][p2]);
+      if (longt > 0 )
+        add_polygon( edges, points->m[0][p0],
+                     points->m[1][p0],
+                     points->m[2][p0],
+                     points->m[0][p2],
+                     points->m[1][p2],
+                     points->m[2][p2],
+                     points->m[0][p3],
+                     points->m[1][p3],
+                     points->m[2][p3]);
     }
   }
   free_matrix(points);
@@ -166,10 +251,6 @@ struct matrix * generate_sphere(double cx, double cy, double cz,
         cos(2*M_PI * rot) + cy;
       z = r * sin(M_PI * circ) *
         sin(2*M_PI * rot) + cz;
-
-      /* printf("rotation: %d\tcircle: %d\n", rotation, circle); */
-      /* printf("rot: %lf\tcirc: %lf\n", rot, circ); */
-      /* printf("sphere point: (%0.2f, %0.2f, %0.2f)\n\n", x, y, z); */
       add_point(points, x, y, z);
     }
   }
@@ -198,7 +279,7 @@ void add_torus( struct matrix * edges,
                 double r1, double r2, int step ) {
 
   struct matrix *points = generate_torus(cx, cy, cz, r1, r2, step);
-  int index, lat, longt;
+  int p0, p1, p2, p3, lat, longt;
   int latStop, longStop, latStart, longStart;
   latStart = 0;
   latStop = step;
@@ -208,13 +289,32 @@ void add_torus( struct matrix * edges,
   for ( lat = latStart; lat < latStop; lat++ ) {
     for ( longt = longStart; longt < longStop; longt++ ) {
 
-      index = lat * step + longt;
-      add_edge( edges, points->m[0][index],
-                points->m[1][index],
-                points->m[2][index],
-                points->m[0][index] + 1,
-                points->m[1][index] + 1,
-                points->m[2][index] + 1);
+      p0 = lat * step + longt;
+      if (longt == step - 1)
+        p1 = p0 - longt;
+      else
+        p1 = p0 + 1;
+      p2 = (p1 + step) % (step * step);
+      p3 = (p0 + step) % (step * step);
+
+      add_polygon( edges, points->m[0][p0],
+                   points->m[1][p0],
+                   points->m[2][p0],
+                   points->m[0][p3],
+                   points->m[1][p3],
+                   points->m[2][p3],
+                   points->m[0][p2],
+                   points->m[1][p2],
+                   points->m[2][p2]);
+      add_polygon( edges, points->m[0][p0],
+                   points->m[1][p0],
+                   points->m[2][p0],
+                   points->m[0][p2],
+                   points->m[1][p2],
+                   points->m[2][p2],
+                   points->m[0][p1],
+                   points->m[1][p1],
+                   points->m[2][p1]);
     }
   }
   free_matrix(points);
@@ -256,9 +356,6 @@ struct matrix * generate_torus( double cx, double cy, double cz,
       y = r1 * sin(2*M_PI * circ) + cy;
       z = -1*sin(2*M_PI * rot) *
         (r1 * cos(2*M_PI * circ) + r2) + cz;
-
-      //printf("rotation: %d\tcircle: %d\n", rotation, circle);
-      //printf("torus point: (%0.2f, %0.2f, %0.2f)\n", x, y, z);
       add_point(points, x, y, z);
     }
   }
@@ -396,7 +493,7 @@ void add_edge( struct matrix * points,
 void draw_lines( struct matrix * points, screen s, color c) {
 
   if ( points->lastcol < 2 ) {
-    printf("Need at least 2 points to draw a line!\n");
+    //printf("Need at least 2 points to draw a line!\n");
     return;
   }
  
