@@ -1,0 +1,43 @@
+ident
+torus
+10 50 0 5 250
+torus
+0 0 0 5 75
+rotate
+x 90
+torus
+90 0 0 1 10
+move
+250 300 0
+apply
+ident
+box
+200 225 200 125 15 15
+sphere
+100 300 0 30
+sphere
+250 300 0 30
+sphere
+350 270 0 8
+sphere
+350 240 0 8
+sphere
+360 210 0 8
+sphere
+370 180 0 8
+sphere
+380 150 0 8
+sphere
+410 150 0 8
+sphere
+420 180 0 8
+rotate
+x 20
+rotate
+y -20
+move
+50 0 0
+apply
+display
+save
+runo.png
